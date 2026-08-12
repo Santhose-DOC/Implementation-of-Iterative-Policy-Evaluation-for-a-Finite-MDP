@@ -101,16 +101,114 @@ Where:
 ```python
 
 
+import gymnasium as gym
+import numpy as np
+
+# Create FrozenLake environment
+env = gym.make("FrozenLake-v1", map_name="4x4", is_slippery=True)
+
+# Access the unwrapped environment to use the transition model
+env = env.unwrapped
+
+# Number of states and actions
+n_states = env.observation_space.n
+n_actions = env.action_space.n
+
+# Parameters
+gamma = 0.8
+theta = 1e-8
+
+# Random policy: each action has equal probability
+policy = np.ones((n_states, n_actions)) / n_actions
+
+# Initialize value function
+V = np.zeros(n_states)
+
 # -------------------------------------------------
 # Policy Evaluation Function
 # -------------------------------------------------
 
+def policy_evaluation(env, policy, gamma=0.99, theta=1e-8):
+    """
+    Performs iterative policy evaluation using the Bellman Expectation Equation.
 
+    Parameters:
+        env    : Gymnasium FrozenLake environment
+        policy : Fixed policy to be evaluated
+        gamma  : Discount factor
+        theta  : Convergence threshold
+
+    Returns:
+        V         : Estimated state-value function
+        iteration : Number of iterations used for convergence
+    """
+
+    n_states = env.observation_space.n
+    n_actions = env.action_space.n
+
+    # Initialize value function
+    V = np.zeros(n_states)
+
+    iteration = 0
+
+    while True:
+
+        delta = 0
+
+        for s in range(n_states):
+
+            v = V[s]
+            new_v = 0
+
+            # Bellman Expectation Equation
+            for a, action_prob in enumerate(policy[s]):
+
+                for transition in env.P[s][a]:
+
+                    # Compatible with Gymnasium and Gym
+                    if len(transition) == 5:
+                        prob, next_state, reward, terminated, truncated = transition
+                        done = terminated or truncated
+                    else:
+                        prob, next_state, reward, done = transition
+
+                    new_v += action_prob * prob * (
+                        reward + gamma * V[next_state] * (not done)
+                    )
+
+            V[s] = new_v
+            delta = max(delta, abs(v - new_v))
+
+        iteration += 1
+
+        if delta < theta:
+            break
+
+    return V, iteration
+
+# Run policy evaluation
 # -------------------------------------------------
-# Display Output
+# Run Policy Evaluation
 # -------------------------------------------------
 
-# Change the parameters and observe the results
+V, iterations = policy_evaluation(env, policy, gamma, theta)
+
+print("Name: Santhose Arockiaraj J")
+print("Register Number: 212224230248")
+print("Number of Iterations:", iterations)
+
+print("\nState-Value Function:")
+print(V)
+
+print("\nName: Santhose Arockiaraj J")
+print("Register Number: 212224230248")
+
+print("\nState-Value Function (4x4 Grid):")
+print(np.round(V.reshape(4, 4), 4))
+
+
+env.close()
+
 
 ```
 
@@ -118,15 +216,10 @@ Where:
 
 ## Output
 
-```text
-
-Number of Iterations: 
-
-State-Value Function as 4x4 Grid:
+<img width="427" height="279" alt="image" src="https://github.com/user-attachments/assets/e7735432-28ba-4848-beff-4e78d913cb5b" />
 
 
 
-```
 ---
 
 ## Result
@@ -137,13 +230,11 @@ Iterative policy evaluation was implemented successfully using the Gymnasium Fro
 
 ## Inference
 
-```text
-
-
-
-```
-
-
+Both notebooks implement the same Iterative Policy Evaluation algorithm with identical code except for the is_slippery parameter.
+is_slippery=False creates a deterministic environment where the agent always moves in the intended direction.
+is_slippery=True creates a stochastic environment where the agent may slip, introducing randomness in state transitions.
+The deterministic environment produces higher state-value estimates and converges faster than the stochastic environment.
+The experiment demonstrates that changes in environment dynamics significantly affect the evaluated state-value function, even when the policy remains unchanged.
 
 
 ---
